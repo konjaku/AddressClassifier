@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Models: generated cache + external symlink (not portable)
+models/
+
+# Claude Code local state
+.claude/

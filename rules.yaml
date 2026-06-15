@@ -1,0 +1,223 @@
+- id: gov_public_security_point
+  level: hard_override
+  scope: name
+  category_candidates: [派出所, 公检法机构, 政府及管理机构]
+  positive_any: [执勤点, 警务站, 警务室, 执勤室, 治安岗亭]
+  confidence: 0.95
+  reason: 公安警务/执勤点强实体
+
+- id: gov_work_station
+  level: hard_override
+  scope: name
+  category_candidates: [政府及管理机构, 省级政府机关, 地级市级政府机关, 区县级政府机关]
+  positive_any: [工作站, 推广站, 鉴定站, 监理总站, 监督所, 指挥部, 总队, 应急中心, 防雷中心]
+  positive_regex_any:
+    - "(湖南省|长沙市|芙蓉区|天心区|雨花区|开福区|岳麓区).{0,20}(工作站|推广站|鉴定站|监理总站|监督所|指挥部|总队|应急中心|防雷中心)"
+  confidence: 0.94
+  reason: 政府/事业单位站点机构
+
+- id: gov_regulator
+  level: hard_override
+  scope: name
+  category_candidates: [省级政府机关, 政府及管理机构]
+  positive_any: [发改委, 财政部湖南监管局, 金融监督管理局, 银行保险监督管理委员会, 银保监, 监管局]
+  confidence: 0.97
+  reason: 监管机构不是金融网点
+
+- id: community_service_center
+  level: hard_override
+  scope: name
+  category_candidates: [村委会/居委会, 行政办公大厅, 政府及管理机构]
+  positive_any: [社区服务中心, 社区公共服务中心, 社区服务站, 党群服务中心]
+  confidence: 0.96
+  reason: 社区公共服务机构
+
+- id: school_short_primary
+  level: hard_override
+  scope: name
+  category_candidates: [小学]
+  positive_regex_any:
+    - "(一小|二小|三小|四小|五小|六小|七小|八小|九小|十小)$"
+  confidence: 0.96
+  reason: 小学简称
+
+- id: school_middle_common
+  level: hard_override
+  scope: name
+  category_candidates: [中学, 教育]
+  positive_any: [实验学校, 外国语学校, 附中, 长郡, 雅礼, 培粹, 修业学校, 育才学校]
+  negative_any: [小学, 职业学校, 技工学校, 大学, 学院, 幼儿园]
+  confidence: 0.94
+  reason: 普通中学/学校主体
+
+- id: school_vocational
+  level: hard_override
+  scope: name
+  category_candidates: [中专/职高/技校, 教育]
+  positive_any: [职校, 职业学校, 技工学校, 高级技工, 警校, 电子学校, 中等职业]
+  confidence: 0.96
+  reason: 职业/技工学校主体
+
+- id: medical_eye_health
+  level: hard_override
+  scope: name
+  category_candidates: [体检机构, 专科医院, 私人诊所]
+  positive_any: [眼科, 视光, 视力, 护眼, 近视, 眼视光, 验光, 视界, 慧视, 眼掌门, 爱光]
+  negative_any: [眼镜批发, 眼镜厂]
+  confidence: 0.94
+  reason: 视力/眼健康检测康复
+
+- id: medical_tcm_rehab
+  level: hard_override
+  scope: name
+  category_candidates: [私人诊所, 专科医院, 医疗机构]
+  positive_any: [国医馆, 中医馆, 医馆, 理疗馆, 康复馆, 鼻炎馆, 灰指甲, 面瘫, 疼痛, 治未堂, 同仁堂, 草堂, 郎中]
+  positive_regex_any:
+    - "(中医|国医|艾灸|针灸|灸疗|理疗|康复|调理|调养).{0,8}养生"
+  negative_any: [美容美发, 足浴, 足疗, SPA, 洗浴]
+  confidence: 0.94
+  reason: 中医/康复/专病健康服务
+
+- id: medical_imaging_psych_beauty
+  level: hard_override
+  scope: name
+  category_candidates: [专科医院, 私人诊所]
+  positive_any: [医学影像, 诊断中心, 医疗整形, 皮肤病医疗, 皮肤病专科]
+  confidence: 0.95
+  reason: 专科医疗服务
+
+- id: bakery_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [面包房]
+  positive_any: [仟吉, 糕点, 烘焙, 面包, 蛋糕, 西饼]
+  confidence: 0.78
+  reason: 糕点烘焙候选
+
+- id: restaurant_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [中餐馆, 快餐, 餐馆]
+  positive_any: [手工面, 石锅鱼, 粉店, 面馆, 小吃, 饭铺, 炊牛厨, 麦咭堡]
+  confidence: 0.78
+  reason: 餐饮候选
+
+- id: tea_tobacco_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [茶叶、茶具专卖店, 香烟/酒类专卖店, 副食专卖店]
+  positive_any: [白沙溪, 茶叶, 茶具, 烟酒, 酒类, 酒庄, 茗茶]
+  confidence: 0.76
+  reason: 茶烟酒零售候选
+
+- id: apparel_sports_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [服装、鞋帽店, 体育用品店]
+  positive_any: [衣铺, 童装, 女装, 男装, 鞋服, 特步, 运动, 体育]
+  negative_any: [体育馆, 运动场]
+  confidence: 0.76
+  reason: 服装/体育用品零售候选
+
+- id: home_building_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [家装建材零售, 家居用品, 五金、机电、仪器仪表]
+  positive_any: [油漆, 涂料, 橱柜, 整体橱柜, 石材, 五金, 灯饰, 家居, 建材]
+  confidence: 0.77
+  reason: 家装建材零售候选
+
+- id: phone_communication_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [通信器材]
+  positive_any: [手机, 通信, 中国移动, 中国联通, 中国电信, 宽带电视]
+  confidence: 0.78
+  reason: 手机通信零售候选
+
+- id: computer_digital_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [电脑专卖店, 电器零售]
+  positive_any: [电脑商行, 电脑, 数码]
+  confidence: 0.77
+  reason: 电脑数码零售候选
+
+- id: home_appliance_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [电器零售]
+  positive_any: [美的慧生活, 家电, 电器, 空调]
+  confidence: 0.76
+  reason: 家电零售候选
+
+- id: beauty_hair_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [美容院、理发店, 洗浴中心、SPA、足浴]
+  positive_any: [养发, 头疗, 形象会所, 名媛会所, 美神, 发艺, 造型, 丝域, 美容, 美发, 理发, 养生馆, 水疗, 芳疗, 蒸疗]
+  confidence: 0.78
+  reason: 美容美发生活服务候选
+
+- id: foot_massage_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [洗浴中心、SPA、足浴]
+  positive_any: [富侨, 足疗, 足浴, 足道, 按摩]
+  confidence: 0.80
+  reason: 足浴按摩服务候选
+
+- id: print_office_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [办公服务]
+  positive_any: [图文, 打印, 复印, 快印, 印图文, 广告制作]
+  confidence: 0.78
+  reason: 图文办公服务候选
+
+- id: real_estate_candidate
+  level: candidate_boost
+  scope: name
+  category_candidates: [房产中介]
+  positive_any: [地产, 房产, 置业, 中介, 经纪]
+  confidence: 0.80
+  reason: 房产中介候选
+
+- id: company_building_address_candidate
+  level: candidate_boost
+  scope: full
+  category_candidates: [住宅楼, 居民楼门牌, 小区门牌]
+  positive_regex_any:
+    - "(公司|集团).{0,12}(北院|南园|宿舍|小区).{0,8}(栋|幢|单元|号)"
+  confidence: 0.84
+  reason: 公司院区楼栋门牌候选
+
+- id: real_estate_branch_not_bank
+  level: deny_or_demote
+  scope: name
+  target_categories: [金融服务, 代表]
+  positive_any: [地产, 房产, 置业, 中介, 经纪]
+  positive_regex_any:
+    - "(分行|门店|店)$"
+  confidence: 0.90
+  reason: 地产/房产分行不是银行金融网点
+
+- id: address_bank_noise
+  level: deny_or_demote
+  scope: address
+  target_categories: [金融服务, 代表, ATM/自助银行]
+  positive_any: [银行]
+  address_positive_any: [对面, 旁边, 附近, 正北方向, 正南方向, 正东方向, 正西方向]
+  name_negative_any: [银行, 支行, 分行, ATM, 自助银行, 农商行, 信用社]
+  confidence: 0.90
+  reason: 地址定位中的银行不是当前POI
+
+- id: company_building_not_company
+  level: deny_or_demote
+  scope: full
+  target_categories: [公司]
+  positive_any: [公司北院, 公司南园小区, 集团宿舍, 单位宿舍]
+  positive_regex_any:
+    - "(公司|集团).{0,12}(北院|南园|宿舍|小区).{0,8}(栋|幢|单元|号)"
+  confidence: 0.88
+  reason: 公司院区楼栋更像门牌/住宅楼，不是公司主体
