@@ -7,11 +7,10 @@ def disambiguate(cands: list[Candidate], full_text: str, primary_tongming: str,
         return None, "无候选"
     if len(cands) == 1:
         return cands[0].category, "唯一候选"
-    cat_set = {c.category for c in cands}
+    # 修饰词命中是权威覆盖:即使 then 不在通名候选里也采纳
+    # (如"X中心"含"防御/应急"→政府及管理机构,而"政府及管理机构"并非"中心"的通名候选)
     for rule in modifiers:
         if rule.get("tongming") != primary_tongming:
-            continue
-        if rule.get("then") not in cat_set:
             continue
         hit = next((w for w in rule.get("if_any", []) if w in full_text), None)
         if hit:
