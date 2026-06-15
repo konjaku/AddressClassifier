@@ -15,7 +15,7 @@ _GOV = {"政府及管理机构", "省级政府机关", "国家级政府机关",
 def classify_one(name: str, address: str, ctx: Context) -> Result:
     name, address = split_fields(name, address)
     full = " ".join(p for p in [name, address] if p)
-    entity = main_entity(name) if name else address
+    entity = main_entity(name) if name else main_entity(address)
     cands = candidates(entity, ctx)
     primary = extract_primary(entity, ctx.tongming) or ""
     # 修饰词权威优先:即使候选为空(如被禁用的"中心")也能据修饰词判定
