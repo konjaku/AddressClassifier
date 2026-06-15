@@ -1,356 +1,81 @@
-# 地址名称标准分类器
+# 地址/POI 名称标准分类器(通名驱动版)
 
-本目录是整理后的交付版项目。文件名和输出列名已经去掉实验版本号，代码压缩为 4 个 Python 文件，文档压缩为当前这一个 `README.md`。
+把 POI 的「名称/地址」批量映射到 `categories.xlsx` 的标准分类(16 一级 / 52 二级 / 326 三级)。
 
-## 1. 文件结构
+本版是对旧 Codex 版的**重做**:纯传统算法、完全离线、零模型(不用 LLM/embedding)、完全可解释。核心思路是**通名(中心词)驱动的确定性分类**,而不是字符模糊相似度。设计与实现计划见 `docs/superpowers/`。
 
-```text
-AddressClassifier/
-  classify.py          主入口：读取 Excel、调度规则/检索/深度兜底、导出结果
-  text_rules.py        文本清洗、名称锚定、强规则、外置词典、排斥规则
-  retrieval.py         标准分类加载、字符检索、多路仲裁
-  deep_model.py        Qwen embedding 核心类型兜底、MPS/CPU 运行
-
-  categories.xlsx      标准分类表
-  rules.yaml           外置 POI 词典
-  core_types.yaml      深度兜底核心类型原型
-
-  models/
-    embedding          Qwen embedding 模型目录软链接
-
-  data/
-    input/             输入数据
-    output/            输出结果
-```
-
-代码文件只有：
-
-```text
-classify.py
-text_rules.py
-retrieval.py
-deep_model.py
-```
-
-## 2. 总体思路
-
-系统不是把所有地址直接丢给大模型，而是分层处理：
-
-```text
-输入 Excel
-  -> 名称/地址识别
-  -> 文本清洗
-  -> 名称强实体锚定
-  -> 外置词典规则
-  -> 强规则候选
-  -> 字符检索候选
-  -> 多路仲裁
-  -> 低置信样本进入 embedding 深度兜底
-  -> 导出 Excel
-```
-
-核心原则：
-
-```text
-1. 名称中的功能实体优先于地址里的楼栋、门牌、附近地标。
-2. 标准分类名只来自 categories.xlsx，不自造分类。
-3. 规则、外置词典和字符检索负责快速覆盖大部分数据。
-4. embedding 只处理低置信样本。
-5. 深度兜底只有强采纳才覆盖原结果。
-```
-
-## 3. 输入格式
-
-推荐 Excel 列：
-
-```text
-名称
-地址
-```
-
-纯地址数据推荐：
-
-```text
-名称列留空
-地址列放地址
-```
-
-如果只有一列地址，也可以放到第一列；系统会根据“省、市、区、街道、路、号、栋、单元”等地址结构尝试识别为纯地址。
-
-## 4. 快速运行
-
-进入目录：
+## 1. 运行
 
 ```bash
-cd /Users/mac/Code/Work/AddressClassifier
+python3 -m addr.cli --input data/input/地址_5000.xlsx --output data/output/结果.xlsx
+# 只跑前 N 行:加 --limit 100
 ```
 
-快速规则版，不启用 embedding：
+依赖只有 `pandas / openpyxl / PyYAML`(见 `requirements.txt`),无任何模型。
+
+## 2. 思路:九步管线
+
+```
+① 规范化与切分   ② 主体定位(剥行政前缀+登记/分店后缀)
+③ 通名抽取(最右/最长) ④ 通名→候选类(词典)
+⑤ 修饰词消歧     ⑥ 行政级别判定(政府类)
+⑦ 优先级裁决+排斥 ⑧ 品牌兜底  ⑨ 置信分层
+```
+
+四条原则:**层级感知**(拿不准就出较高层级,不硬凑三级)、**零模糊相似度**(判不出显式标「待复核」,绝不塞「其他服务」)、**全程可解释**、**陷阱通名硬约束**(裸「学校」「中心」等必须过消歧)。
+
+## 3. 代码结构(`addr/`)
+
+| 模块 | 职责 |
+|---|---|
+| `normalize.py` | 文本规范化、名称/地址切分、纯地址识别 |
+| `segment.py` | 剥离行政前缀 + 登记/分店后缀,定位主体 |
+| `tongming.py` | 通名抽取(最右/最长)+ 层级感知候选排序 |
+| `disambiguate.py` | 修饰词消歧(权威覆盖)+ 行政级别 |
+| `gazetteer.py` | 品牌强实体兜底 |
+| `arbitrate.py` | 优先级裁决 + 排斥规则 + 置信分层 |
+| `classify.py` | 管线编排 + DataFrame 处理 |
+| `cli.py` | Excel 读写命令行 |
+| `build_dict.py` | 离线工具:从 `categories.xlsx` 描述列生成基础词典 |
+
+## 4. 词典(`dict/`,改这里不改代码)
+
+```
+tongming.auto.yaml      由 build_dict 从"适用对象"自动生成(勿手改)
+tongming.override.yaml  人工:陷阱通名(学校/中心置空)、补漏、纠偏;override 覆盖 auto
+modifiers.yaml          多义通名消歧(中心:应急/防御→政府;医院:宠物→宠物医院)
+levels.yaml             行政级别前缀(国家/省/市/区)
+gazetteer.yaml          品牌强实体(仟吉→面包房)
+denylist.yaml           排斥/降权(地址里"银行对面"不算银行)
+```
+
+`categories.xlsx` 变更后重新生成基础词典:
 
 ```bash
-python3 -u classify.py \
-  --input data/input/地址_5000.xlsx \
-  --output data/output/分类结果.xlsx
+python3 -c "from addr.build_dict import build_tongming_auto as b; from addr.categories import load_catalog as l; b(l('categories.xlsx'),'dict/tongming.auto.yaml')"
 ```
 
-只跑前 100 条：
+## 5. 输出与置信
+
+输出在原列基础上追加:`最终标准分类 / 分类级别 / 命中通名 / 候选 / 消歧依据 / 行政级别 / 置信 / 需复核 / 理由`。
+
+置信分层:`gold`(清晰可直接用)/ `silver`(消歧不定,建议复核)/ `review`(无通名或判不出 → 分类记为「待复核」)。`需复核=是` 的行进人工复核队列。
+
+## 6. 迭代方式(无固定真值集)
+
+```
+跑一版 → 抽查"需复核"队列 → 把纠正结果按 {"name","address","label"}
+追加进 eval/regression.jsonl → 重跑评测,保证已对的不回退
+```
 
 ```bash
-python3 -u classify.py \
-  --input data/input/地址_5000.xlsx \
-  --output data/output/抽样结果.xlsx \
-  --limit 100
+python3 -m eval.run_eval eval/regression.jsonl
 ```
 
-## 5. 正式深度版
+要扩覆盖、纠错,优先改 `dict/*.yaml`(override / modifiers / gazetteer / denylist),而不是改代码。
 
-CPU 深度兜底：
+## 7. 测试
 
 ```bash
-python3 -u classify.py \
-  --input data/input/地址_5000.xlsx \
-  --output data/output/分类结果_深度.xlsx \
-  --enable-deep \
-  --deep-device cpu \
-  --deep-batch-size 8
+pytest -q
 ```
-
-Apple 芯片 MPS 深度兜底：
-
-```bash
-PYTORCH_ENABLE_MPS_FALLBACK=1 TOKENIZERS_PARALLELISM=false python3 -u classify.py \
-  --input data/input/地址_5000.xlsx \
-  --output data/output/分类结果_MPS.xlsx \
-  --enable-deep \
-  --deep-device mps \
-  --deep-batch-size 1
-```
-
-MPS 注意事项：
-
-```text
-1. Codex 默认沙箱内可能无法访问 Metal/MPS。
-2. 普通 VSCode 终端或沙箱外运行可用。
-3. M2 Air 8GB 建议从 batch_size=1 开始。
-4. 确认不卡顿后再尝试 batch_size=2 或 4。
-```
-
-先检查 MPS：
-
-```bash
-PYTORCH_ENABLE_MPS_FALLBACK=1 python3 - <<'PY'
-import torch
-print(torch.backends.mps.is_built())
-print(torch.backends.mps.is_available())
-PY
-```
-
-两个都为 `True` 才能用 `--deep-device mps`。
-
-## 6. 规则层原理
-
-`text_rules.py` 包含三类可解释规则。
-
-名称锚定：
-
-```text
-口腔/牙科 -> 牙科诊所
-眼科/眼视光/视光/视力/护眼/验光 -> 专科医院/体检机构/私人诊所
-小学/中学/大学 -> 对应教育分类
-居委会/村委会 -> 村委会/居委会
-警务站/执勤点 -> 派出所
-监管局/发改委 -> 政府机关
-```
-
-强规则：
-
-```text
-彩票 -> 彩票销售
-银行/支行/分行 -> 金融服务
-邮政/EMS -> 邮局/物流
-酒店/宾馆 -> 住宿
-药店/药房 -> 药店
-眼科/视光/验光 -> 专科医院/体检机构/私人诊所
-餐厅/饭店/粉店/面馆 -> 餐饮
-```
-
-外置词典 `rules.yaml` 分三层：
-
-```text
-hard_override     高精度强锚定，可覆盖
-candidate_boost   候选加分，只参与仲裁
-deny_or_demote    排斥/降权，防止误判
-```
-
-例子：
-
-```text
-地产/房产 + 分行 -> 排斥金融服务
-银行对面/银行旁边 -> 排斥金融服务
-公司北院/公司南园小区 + 栋 -> 排斥公司
-```
-
-## 7. 字符检索原理
-
-`retrieval.py` 使用字符 ngram TF-IDF 检索标准分类描述。
-
-作用：
-
-```text
-1. 当规则没有命中时，提供文本相似候选。
-2. 适合中文短文本，不依赖分词。
-3. 速度快，可大批量运行。
-```
-
-## 8. 深度兜底原理
-
-`deep_model.py` 使用 Qwen embedding。
-
-它不直接匹配全部标准分类，而是先匹配 `core_types.yaml` 中的核心类型：
-
-```text
-餐饮
-零售
-医疗健康
-教育培训
-金融网点
-小区楼盘
-纯地址定位链
-政府事业单位
-生活服务
-```
-
-流程：
-
-```text
-低置信样本
-  -> 构造短 query
-  -> Qwen 编码 query
-  -> Qwen 编码核心类型原型
-  -> 计算相似度
-  -> 得到 Top1 / Top2 核心类型
-  -> 根据 map_to 映射回标准分类
-  -> 按采纳规则决定是否覆盖
-```
-
-强采纳条件：
-
-```text
-1. 原结果不是 gold。
-2. 分数达到阈值。
-3. Top1/Top2 分差足够，或 Top2 合理反超。
-4. 命中 required_any 关键词。
-5. 未命中 denied_any 反例词。
-6. 不违反风险类别关键词要求。
-```
-
-输出：
-
-```text
-strong_accept -> 覆盖最终分类
-weak_suggest  -> 只记录建议，不覆盖
-reject        -> 保持原分类
-```
-
-## 9. 输出字段
-
-核心输出列：
-
-```text
-原始名称
-原始地址
-输入模式
-词典候选
-词典排斥降权
-名称锚定候选
-强规则候选
-检索候选
-候选汇总
-最终标准分类
-最终分数
-最终匹配方式
-最终置信度
-标签等级
-结果状态
-最终原因
-是否进入深度兜底
-深度兜底Top1核心类型
-深度兜底Top1分数
-深度兜底Top2核心类型
-深度兜底Top2分数
-深度兜底建议标准分类
-深度兜底采纳等级
-是否采纳深度兜底
-```
-
-标签等级：
-
-```text
-gold    高置信，可直接使用
-silver  中高置信，建议抽检
-review  低置信，仍有最终分类，但建议关注
-```
-
-## 10. 维护方式
-
-优先改配置，不要先改代码。
-
-扩规则：
-
-```text
-改 rules.yaml
-```
-
-扩深度语义：
-
-```text
-改 core_types.yaml
-```
-
-改标准分类描述：
-
-```text
-改 categories.xlsx 的描述列
-```
-
-不要修改标准分类名，最终分类名必须来自 `categories.xlsx`。
-
-## 11. 回归测试
-
-每次修改后建议跑：
-
-```bash
-python3 -u classify.py --input data/input/地址_625.xlsx --output data/output/回归_625.xlsx
-python3 -u classify.py --input data/input/地址_4555.xlsx --output data/output/回归_4555.xlsx
-python3 -u classify.py --input data/input/地址_5000.xlsx --output data/output/回归_5000.xlsx
-python3 -u classify.py --input data/input/地址_6000.xlsx --output data/output/回归_6000.xlsx
-```
-
-重点检查：
-
-```text
-其他单位/其他服务是否过多
-银行对面是否误判金融服务
-地产分行是否误判银行
-公司宿舍/公司北院楼栋是否误判公司
-小区门牌是否被商户名称错误覆盖
-眼科/视光机构是否误判为洗浴、足浴或普通生活服务
-```
-
-## 12. 产品化建议
-
-建议提供两种模式：
-
-快速模式：
-
-```text
-规则 + 外置词典 + 字符检索
-```
-
-正式模式：
-
-```text
-快速模式 + MPS embedding 深度兜底
-```
-
-这样既能满足百万级速度，又能对低置信样本做语义精修。
