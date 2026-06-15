@@ -13,7 +13,7 @@ def detect_mode(name: str, address: str) -> str:
     name, address = normalize(name), normalize(address)
     if address:
         return "has_name" if name else "address_only"
-    if len(name) >= 8 and _ADDRESS_SIGNAL.search(name):
+    if len(name) >= 18 and _ADDRESS_SIGNAL.search(name):
         return "address_only"
     return "has_name" if name else "address_only"
 
