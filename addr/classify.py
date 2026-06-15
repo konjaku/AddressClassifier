@@ -33,7 +33,7 @@ def classify_one(name: str, address: str, ctx: Context) -> Result:
         ordered = [chosen] + [c for c in cands if c.category != cat]
     else:
         brand = brand_hit(name, ctx.gazetteer)
-        mp = menpai_category(name)
+        mp = menpai_category(entity)   # 用去括号后缀的主体,避免分店地址(如"…翡翠华庭店")误判门牌
         if brand:
             ordered = [brand]
             why = f"品牌:{brand.evidence}"
