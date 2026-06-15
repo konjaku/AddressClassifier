@@ -11,3 +11,6 @@ models/
 
 # Claude Code local state
 .claude/
+
+# 运行产物(不进版本控制)
+data/output/
