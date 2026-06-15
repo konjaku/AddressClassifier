@@ -7,11 +7,12 @@ MODIFIERS = [
     {"tongming": "医院", "if_any": ["宠物", "动物"], "then": "宠物医院"},
     {"tongming": "医院", "if_any": ["口腔", "眼", "皮肤", "骨", "专科"], "then": "专科医院"},
 ]
+# 最具体在前:取首个命中即最深一级
 LEVELS = [
+    {"prefix_any": ["区", "县", "旗"], "level": "区县级政府机关"},
+    {"prefix_any": ["长沙市", "市", "自治州"], "level": "地级市级政府机关"},
+    {"prefix_any": ["湖南省", "省", "自治区"], "level": "省级政府机关"},
     {"prefix_any": ["国家", "全国", "中华人民共和国"], "level": "国家级政府机关"},
-    {"prefix_any": ["省", "自治区", "湖南省"], "level": "省级政府机关"},
-    {"prefix_any": ["市", "长沙市"], "level": "地级市级政府机关"},
-    {"prefix_any": ["区", "县"], "level": "区县级政府机关"},
 ]
 
 def test_disambiguate_picks_by_modifier():
@@ -22,3 +23,7 @@ def test_disambiguate_picks_by_modifier():
 
 def test_gov_level_from_prefix():
     assert gov_level("湖南省水利厅", LEVELS) == "省级政府机关"
+
+def test_gov_level_picks_deepest_marker():
+    # 同时含"市"和"区"时取最深一级(区县),而非最粗的市级
+    assert gov_level("长沙市天心区人民政府", LEVELS) == "区县级政府机关"

@@ -26,7 +26,8 @@ def disambiguate(cands: list[Candidate], full_text: str, primary_tongming: str,
     return cands[0].category, "多候选未消歧,取首候选"
 
 def gov_level(full_text: str, levels: list) -> str:
+    # levels 按"最具体在前"排列;取首个命中即最深一级(区县 > 市 > 省 > 国家)
     for rule in levels:
-        if any(full_text.startswith(p) or p in full_text[:6] for p in rule.get("prefix_any", [])):
+        if any(full_text.startswith(p) or p in full_text[:8] for p in rule.get("prefix_any", [])):
             return rule["level"]
     return ""
