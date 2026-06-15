@@ -4,7 +4,7 @@ from addr.types import Context, Result, Candidate
 from addr.normalize import split_fields
 from addr.segment import main_entity
 from addr.tongming import extract_primary, candidates
-from addr.disambiguate import disambiguate, gov_level
+from addr.disambiguate import disambiguate, gov_level, match_modifier
 from addr.gazetteer import brand_hit
 from addr.arbitrate import arbitrate
 
@@ -17,12 +17,18 @@ def classify_one(name: str, address: str, ctx: Context) -> Result:
     entity = main_entity(name) if name else address
     cands = candidates(entity, ctx)
     primary = extract_primary(entity, ctx.tongming) or ""
-    if cands:
+    # 修饰词权威优先:即使候选为空(如被禁用的"中心")也能据修饰词判定
+    mcat, mwhy = match_modifier(primary, full, ctx.modifiers)
+    if mcat:
+        chosen = next((c for c in cands if c.category == mcat), None) \
+            or Candidate(category=mcat, source="消歧", evidence=primary)
+        ordered = [chosen] + [c for c in cands if c.category != mcat]
+        why = mwhy
+    elif cands:
         cat, why = disambiguate(cands, full, primary, ctx.modifiers)
-        # 消歧结果作为最终首选(可能是修饰词注入的、不在通名候选里的类)
-        chosen = next((c for c in cands if c.category == cat), None)
-        if chosen is None:
-            chosen = Candidate(category=cat, source="消歧", evidence=primary)
+        # 消歧结果作为最终首选(可能是不在通名候选里的类)
+        chosen = next((c for c in cands if c.category == cat), None) \
+            or Candidate(category=cat, source="消歧", evidence=primary)
         ordered = [chosen] + [c for c in cands if c.category != cat]
     else:
         brand = brand_hit(name, ctx.gazetteer)
