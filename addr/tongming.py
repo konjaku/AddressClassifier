@@ -2,6 +2,8 @@ from __future__ import annotations
 from addr.types import Candidate, Context
 
 _LEVEL_RANK = {"三级分类": 3, "二级分类": 2, "一级分类": 1}
+# 弱通名=登记主体/泛化词:仅在没有其它功能通名时才作主通名("功能实体优先于登记主体")
+_WEAK = {"公司", "有限公司", "股份有限公司", "有限责任公司", "集团", "总公司", "分公司", "厂", "企业"}
 
 def _matches(text: str, terms) -> list[tuple[int, int, str]]:
     """返回 (起点, 长度, 词):每个出现在 text 中的词典词(取最右出现位置)。"""
@@ -19,14 +21,17 @@ def extract_primary(text: str, tongming: dict) -> str | None:
     hits = _matches(text, tongming.keys())
     if not hits:
         return None
-    hits.sort(key=lambda h: (h[0] + h[1], h[1]))
-    return hits[-1][2]
+    nonweak = [h for h in hits if h[2] not in _WEAK]
+    pool = nonweak or hits          # 有功能通名就用功能通名,否则才回落到弱通名
+    pool.sort(key=lambda h: (h[0] + h[1], h[1]))
+    return pool[-1][2]
 
 def candidates(text: str, ctx: Context) -> list[Candidate]:
     out: list[Candidate] = []
     seen: set[str] = set()
     hits = _matches(text, ctx.tongming.keys())
-    hits.sort(key=lambda h: (h[0] + h[1], h[1]), reverse=True)   # 偏好靠右的通名
+    # 功能通名优先于弱通名(登记主体),其次偏好靠右
+    hits.sort(key=lambda h: (h[2] not in _WEAK, h[0] + h[1], h[1]), reverse=True)
     for _, _, term in hits:
         cats = ctx.tongming.get(term, [])
         # 同一通名内:与通名同名的分类优先,其次层级更深(三级>二级>一级)优先

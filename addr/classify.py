@@ -6,6 +6,7 @@ from addr.segment import main_entity
 from addr.tongming import extract_primary, candidates
 from addr.disambiguate import disambiguate, gov_level, match_modifier
 from addr.gazetteer import brand_hit
+from addr.menpai import menpai_category
 from addr.arbitrate import arbitrate
 
 _GOV = {"政府及管理机构", "省级政府机关", "国家级政府机关",
@@ -32,9 +33,13 @@ def classify_one(name: str, address: str, ctx: Context) -> Result:
         ordered = [chosen] + [c for c in cands if c.category != cat]
     else:
         brand = brand_hit(name, ctx.gazetteer)
+        mp = menpai_category(name)
         if brand:
             ordered = [brand]
             why = f"品牌:{brand.evidence}"
+        elif mp:
+            ordered = [Candidate(category=mp, source="门牌", evidence="住宅结构")]
+            why = "门牌/小区结构"
         else:
             ordered = []
             why = "无通名"
