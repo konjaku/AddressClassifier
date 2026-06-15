@@ -20,7 +20,9 @@ def build_tongming_auto(catalog: dict[str, Category], out_path: str) -> dict[str
             index[term].append(name)
 
     for name, c in catalog.items():
-        add(name, name)                       # 分类名本身
+        if c.level != "三级分类":
+            continue                             # 只从三级分类生成通名,确保输出全是三级
+        add(name, name)                          # 分类名本身
         m = _APPLY.search(c.description)
         if m:
             for term in _SPLIT.split(m.group(1)):
