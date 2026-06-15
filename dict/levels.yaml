@@ -1,1 +1,4 @@
-[]
+- {prefix_any: [国家, 全国, 中华人民共和国], level: 国家级政府机关}
+- {prefix_any: [湖南省, 省, 自治区], level: 省级政府机关}
+- {prefix_any: [长沙市, 市], level: 地级市级政府机关}
+- {prefix_any: [区, 县], level: 区县级政府机关}

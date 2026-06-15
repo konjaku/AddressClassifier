@@ -1,1 +1,1 @@
-[]
+- {target: 金融服务, positive_any: [银行], address_any: [对面, 旁边, 附近, 正北方向, 正南方向], name_negative_any: [银行, 支行, 分行, ATM]}

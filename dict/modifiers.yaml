@@ -1,1 +1,5 @@
-[]
+- {tongming: 中心, if_any: [考试, 测试], then: 考试中心}
+- {tongming: 中心, if_any: [应急, 防御, 灾害, 监测, 指挥, 政务, 督察], then: 政府及管理机构}
+- {tongming: 医院, if_any: [宠物, 动物], then: 宠物医院}
+- {tongming: 医院, if_any: [口腔, 眼, 皮肤, 骨, 专科], then: 专科医院}
+- {tongming: 院, if_any: [机关, 政府], then: 省级政府机关}
