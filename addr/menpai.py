@@ -14,8 +14,13 @@ _RESIDENTIAL = re.compile(r"小区|花园|家园|佳苑|嘉园|公寓|华庭|名
 _DORM = re.compile(r"(宿舍|家属[区楼]|教工楼|职工楼)\s*[A-Za-z]?\d*\s*[栋幢号]?$")
 
 def dorm_category(text: str) -> str | None:
-    """机构宿舍/家属楼 → 住宅楼(决定性住宅信号,应优先于机构通名,如'X医院宿舍4栋')。"""
-    return "住宅楼" if text and _DORM.search(text) else None
+    """机构宿舍/家属楼 → 住宅楼(决定性住宅信号,优先于机构通名,如'X医院宿舍4栋')。
+    例外:高校(大学/学院)的楼栋按约定归高等院校,不走此兜底。"""
+    if not text or not _DORM.search(text):
+        return None
+    if re.search(r"大学|学院", text):
+        return None
+    return "住宅楼"
 
 def menpai_category(text: str) -> str | None:
     """住宅门牌/小区结构兜底:仅在无任何业态通名时调用,且应传入已去括号后缀的主体。
