@@ -11,7 +11,6 @@ from addr.arbitrate import arbitrate
 
 _GOV = {"政府及管理机构", "省级政府机关", "国家级政府机关",
         "地级市级政府机关", "区县级政府机关"}
-
 def classify_one(name: str, address: str, ctx: Context) -> Result:
     name, address = split_fields(name, address)
     full = " ".join(p for p in [name, address] if p)
@@ -51,6 +50,9 @@ def classify_one(name: str, address: str, ctx: Context) -> Result:
 
 def _finalize(ordered, why, name, full, address, ctx) -> Result:
     res = arbitrate(ordered, name, full, why, ctx.denylist, address)
+    # 医院的门诊/科室/咨询室是医院科室,归综合医院(而非独立私人诊所/商务服务)
+    if "医院" in name and res.category in {"私人诊所", "法律、商务服务"}:
+        res.category, res.reason = "综合医院", "医院科室归综合医院"
     if res.category in _GOV:
         lvl = gov_level(full, ctx.levels)
         if lvl:

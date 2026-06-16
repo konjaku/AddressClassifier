@@ -1,8 +1,8 @@
 from __future__ import annotations
 import re
 
-# 轨交站出入口:"X站N出口" / "地铁…出入口"
-_TRANSIT = re.compile(r"站\s*[0-9A-Za-z]{0,3}\s*出口|地铁.{0,6}出入口")
+# 轨交站出入口:"X站N出口"(限"站",避免误吃"车库出入口")
+_TRANSIT = re.compile(r"站\s*[0-9A-Za-z]{0,3}\s*出口|地铁站.{0,4}出入口")
 # 楼栋/单元/门牌号 → 具体门牌
 _DOORPLATE = re.compile(r"[栋幢]|单元|号楼|\d+\s*室|[A-Za-z]?\d+\s*号|[ABCD]区\d")
 # 小区出入口/分期 → 小区(整体,而非具体门牌)
@@ -10,17 +10,20 @@ _GATE = re.compile(r"[东南西北]+门|出入口|\d+\s*期")
 # 住宅小区/楼盘名 → 小区
 _RESIDENTIAL = re.compile(r"小区|花园|家园|佳苑|嘉园|公寓|华庭|名邸|新村|安置")
 
-# 宿舍/家属楼:住宅,且"宿舍/家属"须在末端(避免"宿舍区超市"被误判)
-_DORM = re.compile(r"(宿舍|家属[区楼]|教工楼|职工楼)\s*[A-Za-z]?\d*\s*[栋幢号]?$")
+# 宿舍/家属/学生公寓楼:住宅。"宿舍/家属/教工/X生公寓"后可接 栋/舍/号/楼(避免"宿舍区超市")
+# 两式:① 以住宅词结尾(XX宿舍/家属区/公寓);② 住宅词+(可夹少量字)+楼栋号(宿舍楼4栋/宿舍东园9栋)
+_DORM = re.compile(
+    r"(?:宿舍|家属区|家属楼|学生公寓|[男女]生公寓|教工楼|职工楼|公寓)$"
+    r"|(?:宿舍|家属|教工|职工|教职工|公寓)[一-龥A-Za-z]{0,4}\d+\s*[栋幢号舍]$"
+)
 
 def dorm_category(text: str) -> str | None:
-    """机构宿舍/家属楼 → 住宅楼(决定性住宅信号,优先于机构通名,如'X医院宿舍4栋')。
-    例外:高校(大学/学院)的楼栋按约定归高等院校,不走此兜底。"""
-    if not text or not _DORM.search(text):
+    """机构(含高校)的宿舍/家属/公寓楼 → 住宅楼。
+    决定性住宅信号,优先于机构通名(如'X医院宿舍4栋'、'X大学学生公寓2栋')。
+    例外:'酒店式公寓'等是商业住宿,交由通名处理。"""
+    if not text or "酒店" in text:
         return None
-    if re.search(r"大学|学院", text):
-        return None
-    return "住宅楼"
+    return "住宅楼" if _DORM.search(text) else None
 
 def menpai_category(text: str) -> str | None:
     """住宅门牌/小区结构兜底:仅在无任何业态通名时调用,且应传入已去括号后缀的主体。
