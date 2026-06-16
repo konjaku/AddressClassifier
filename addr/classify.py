@@ -6,7 +6,7 @@ from addr.segment import main_entity
 from addr.tongming import extract_primary, candidates
 from addr.disambiguate import disambiguate, gov_level, match_modifier
 from addr.gazetteer import brand_hit
-from addr.menpai import menpai_category
+from addr.menpai import menpai_category, dorm_category
 from addr.arbitrate import arbitrate
 
 _GOV = {"政府及管理机构", "省级政府机关", "国家级政府机关",
@@ -16,6 +16,10 @@ def classify_one(name: str, address: str, ctx: Context) -> Result:
     name, address = split_fields(name, address)
     full = " ".join(p for p in [name, address] if p)
     entity = main_entity(name) if name else main_entity(address)
+    dorm = dorm_category(entity)
+    if dorm:   # "宿舍/家属楼"是决定性住宅信号,优先于机构通名
+        return _finalize([Candidate(category=dorm, source="门牌", evidence="宿舍/家属楼")],
+                         "宿舍/家属楼结构", name, full, address, ctx)
     cands = candidates(entity, ctx)
     primary = extract_primary(entity, ctx.tongming) or ""
     # 修饰词权威优先:即使候选为空(如被禁用的"中心")也能据修饰词判定
@@ -43,6 +47,9 @@ def classify_one(name: str, address: str, ctx: Context) -> Result:
         else:
             ordered = []
             why = "无通名"
+    return _finalize(ordered, why, name, full, address, ctx)
+
+def _finalize(ordered, why, name, full, address, ctx) -> Result:
     res = arbitrate(ordered, name, full, why, ctx.denylist, address)
     if res.category in _GOV:
         lvl = gov_level(full, ctx.levels)

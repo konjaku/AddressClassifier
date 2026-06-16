@@ -1,4 +1,9 @@
-from addr.menpai import menpai_category
+from addr.menpai import menpai_category, dorm_category
+
+def test_dorm():
+    assert dorm_category("长沙市中心医院宿舍4栋") == "住宅楼"
+    assert dorm_category("某某大学家属区") == "住宅楼"
+    assert dorm_category("中南大学宿舍区超市") is None   # 末端是超市,不算住宅
 
 def test_doorplate_with_building_unit():
     assert menpai_category("松雅小区B20栋B123号") == "小区门牌"

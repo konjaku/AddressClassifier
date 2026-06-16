@@ -10,6 +10,13 @@ _GATE = re.compile(r"[东南西北]+门|出入口|\d+\s*期")
 # 住宅小区/楼盘名 → 小区
 _RESIDENTIAL = re.compile(r"小区|花园|家园|佳苑|嘉园|公寓|华庭|名邸|新村|安置")
 
+# 宿舍/家属楼:住宅,且"宿舍/家属"须在末端(避免"宿舍区超市"被误判)
+_DORM = re.compile(r"(宿舍|家属[区楼]|教工楼|职工楼)\s*[A-Za-z]?\d*\s*[栋幢号]?$")
+
+def dorm_category(text: str) -> str | None:
+    """机构宿舍/家属楼 → 住宅楼(决定性住宅信号,应优先于机构通名,如'X医院宿舍4栋')。"""
+    return "住宅楼" if text and _DORM.search(text) else None
+
 def menpai_category(text: str) -> str | None:
     """住宅门牌/小区结构兜底:仅在无任何业态通名时调用,且应传入已去括号后缀的主体。
     有楼栋/单元/号 → 小区门牌;小区名或出入口 → 小区;都不是 → None。"""
